@@ -39,7 +39,7 @@ npm add https://github.com/tauri-apps/tauri-plugin-window-state#v1
 yarn add https://github.com/tauri-apps/tauri-plugin-window-state#v1
 ```
 
-## Usage
+## 🛠️ Usage
 
 First you need to register the core plugin with Tauri:
 
