@@ -1,5 +1,15 @@
 {
+<<<<<<< HEAD
 	"name": "tauri-plugin-window-state-api",
+=======
+	"authors": [
+		"Tauri Programme within The Commons Conservancy"
+	],
+	"browser": "dist-js/index.min.js",
+	"dependencies": {
+		"@tauri-apps/api": "2.0.0-rc.5"
+	},
+>>>>>>> 09d24dc776a423565ff98b889f3f40364089876b
 	"description": "Save window positions and sizes and restore them when the app is reopened.",
 	"exports": {
 		"browser": "./dist-js/index.min.js",
