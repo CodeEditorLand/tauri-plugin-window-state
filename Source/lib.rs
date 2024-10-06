@@ -114,10 +114,8 @@ impl<R:Runtime> AppHandleExt for tauri::AppHandle<R> {
 				.map_err(Error::Io)
 				.and_then(|_| File::create(state_path).map_err(Into::into))
 				.and_then(|mut f| {
-					f.write_all(
-						&bincode::serialize(&*state).map_err(Error::Bincode)?,
-					)
-					.map_err(Into::into)
+					f.write_all(&bincode::serialize(&*state).map_err(Error::Bincode)?)
+						.map_err(Into::into)
 				})
 		} else {
 			Ok(())
@@ -148,10 +146,7 @@ impl<R:Runtime> WindowExt for Window<R> {
 			}
 
 			if flags.contains(StateFlags::SIZE) {
-				self.set_size(LogicalSize {
-					width:state.width,
-					height:state.height,
-				})?;
+				self.set_size(LogicalSize { width:state.width, height:state.height })?;
 			}
 
 			if flags.contains(StateFlags::POSITION) {
@@ -162,16 +157,8 @@ impl<R:Runtime> WindowExt for Window<R> {
 				for m in self.available_monitors()? {
 					if m.intersects(position, size) {
 						self.set_position(PhysicalPosition {
-							x:if state.maximized {
-								state.prev_x
-							} else {
-								state.x
-							},
-							y:if state.maximized {
-								state.prev_y
-							} else {
-								state.y
-							},
+							x:if state.maximized { state.prev_x } else { state.x },
+							y:if state.maximized { state.prev_y } else { state.y },
 						})?;
 					}
 				}
@@ -190,10 +177,7 @@ impl<R:Runtime> WindowExt for Window<R> {
 			let mut metadata = WindowState::default();
 
 			if flags.contains(StateFlags::SIZE) {
-				let scale_factor = self
-					.current_monitor()?
-					.map(|m| m.scale_factor())
-					.unwrap_or(1.);
+				let scale_factor = self.current_monitor()?.map(|m| m.scale_factor()).unwrap_or(1.);
 				let size = self.inner_size()?.to_logical(scale_factor);
 				metadata.width = size.width;
 				metadata.height = size.height;
@@ -234,24 +218,15 @@ impl<R:Runtime> WindowExt for Window<R> {
 }
 
 trait WindowExtInternal {
-	fn update_state(
-		&self,
-		state:&mut WindowState,
-		flags:StateFlags,
-	) -> tauri::Result<()>;
+	fn update_state(&self, state:&mut WindowState, flags:StateFlags) -> tauri::Result<()>;
 }
 
 impl<R:Runtime> WindowExtInternal for Window<R> {
-	fn update_state(
-		&self,
-		state:&mut WindowState,
-		flags:StateFlags,
-	) -> tauri::Result<()> {
-		let is_maximized =
-			match flags.intersects(StateFlags::MAXIMIZED | StateFlags::SIZE) {
-				true => self.is_maximized()?,
-				false => false,
-			};
+	fn update_state(&self, state:&mut WindowState, flags:StateFlags) -> tauri::Result<()> {
+		let is_maximized = match flags.intersects(StateFlags::MAXIMIZED | StateFlags::SIZE) {
+			true => self.is_maximized()?,
+			false => false,
+		};
 
 		if flags.contains(StateFlags::MAXIMIZED) {
 			state.maximized = is_maximized;
@@ -270,8 +245,7 @@ impl<R:Runtime> WindowExtInternal for Window<R> {
 		}
 
 		if flags.contains(StateFlags::SIZE) {
-			let scale_factor =
-				self.current_monitor()?.map(|m| m.scale_factor()).unwrap_or(1.);
+			let scale_factor = self.current_monitor()?.map(|m| m.scale_factor()).unwrap_or(1.);
 			let size = self.inner_size()?.to_logical(scale_factor);
 
 			// It doesn't make sense to save a window with 0 height or width
@@ -324,31 +298,25 @@ impl Builder {
 	pub fn build<R:Runtime>(self) -> TauriPlugin<R> {
 		let flags = self.state_flags;
 		PluginBuilder::new("window-state")
-			.invoke_handler(tauri::generate_handler![
-				cmd::save_window_state,
-				cmd::restore_state
-			])
+			.invoke_handler(tauri::generate_handler![cmd::save_window_state, cmd::restore_state])
 			.setup(|app| {
-				let cache:Arc<Mutex<HashMap<String, WindowState>>> =
-					if let Some(app_dir) = app.path_resolver().app_config_dir()
-					{
-						let state_path = app_dir.join(STATE_FILENAME);
-						if state_path.exists() {
-							Arc::new(Mutex::new(
-								tauri::api::file::read_binary(state_path)
-									.map_err(Error::TauriApi)
-									.and_then(|state| {
-										bincode::deserialize(&state)
-											.map_err(Into::into)
-									})
-									.unwrap_or_default(),
-							))
-						} else {
-							Default::default()
-						}
+				let cache:Arc<Mutex<HashMap<String, WindowState>>> = if let Some(app_dir) =
+					app.path_resolver().app_config_dir()
+				{
+					let state_path = app_dir.join(STATE_FILENAME);
+					if state_path.exists() {
+						Arc::new(Mutex::new(
+							tauri::api::file::read_binary(state_path)
+								.map_err(Error::TauriApi)
+								.and_then(|state| bincode::deserialize(&state).map_err(Into::into))
+								.unwrap_or_default(),
+						))
 					} else {
 						Default::default()
-					};
+					}
+				} else {
+					Default::default()
+				};
 				app.manage(WindowStateCache(cache));
 				Ok(())
 			})
@@ -370,11 +338,7 @@ impl Builder {
 				// insert a default state if this window should be tracked and
 				// the disk cache doesn't have a state for it
 				{
-					cache
-						.lock()
-						.unwrap()
-						.entry(label.clone())
-						.or_insert_with(WindowState::default);
+					cache.lock().unwrap().entry(label.clone()).or_insert_with(WindowState::default);
 				}
 
 				window.on_window_event(move |e| {
@@ -386,9 +350,7 @@ impl Builder {
 							}
 						},
 
-						WindowEvent::Moved(position)
-							if flags.contains(StateFlags::POSITION) =>
-						{
+						WindowEvent::Moved(position) if flags.contains(StateFlags::POSITION) => {
 							let mut c = cache.lock().unwrap();
 							if let Some(state) = c.get_mut(&label) {
 								state.prev_x = state.x;
@@ -412,19 +374,11 @@ impl Builder {
 }
 
 trait MonitorExt {
-	fn intersects(
-		&self,
-		position:PhysicalPosition<i32>,
-		size:LogicalSize<u32>,
-	) -> bool;
+	fn intersects(&self, position:PhysicalPosition<i32>, size:LogicalSize<u32>) -> bool;
 }
 
 impl MonitorExt for Monitor {
-	fn intersects(
-		&self,
-		position:PhysicalPosition<i32>,
-		size:LogicalSize<u32>,
-	) -> bool {
+	fn intersects(&self, position:PhysicalPosition<i32>, size:LogicalSize<u32>) -> bool {
 		let size = size.to_physical::<u32>(self.scale_factor());
 
 		let PhysicalPosition { x, y } = *self.position();
