@@ -24,4 +24,5 @@ declare function restoreState(
  *  Restore the state for the current window from disk.
  */
 declare function restoreStateCurrent(flags: StateFlags): Promise<void>;
+
 export { restoreState, restoreStateCurrent, saveWindowState };
