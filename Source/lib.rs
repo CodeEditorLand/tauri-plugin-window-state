@@ -46,10 +46,15 @@ bitflags! {
 	#[derive(Clone, Copy, Debug)]
 	pub struct StateFlags: u32 {
 		const SIZE        = 1 << 0;
+
 		const POSITION    = 1 << 1;
+
 		const MAXIMIZED   = 1 << 2;
+
 		const VISIBLE     = 1 << 3;
+
 		const DECORATIONS = 1 << 4;
+
 		const FULLSCREEN  = 1 << 5;
 	}
 }
@@ -102,8 +107,11 @@ impl<R:Runtime> AppHandleExt for tauri::AppHandle<R> {
 	fn save_window_state(&self, flags:StateFlags) -> Result<()> {
 		if let Some(app_dir) = self.path_resolver().app_config_dir() {
 			let state_path = app_dir.join(STATE_FILENAME);
+
 			let cache = self.state::<WindowStateCache>();
+
 			let mut state = cache.0.lock().unwrap();
+
 			for (label, s) in state.iter_mut() {
 				if let Some(window) = self.get_window(label) {
 					window.update_state(s, flags)?;
@@ -131,6 +139,7 @@ pub trait WindowExt {
 impl<R:Runtime> WindowExt for Window<R> {
 	fn restore_state(&self, flags:StateFlags) -> tauri::Result<()> {
 		let cache = self.state::<WindowStateCache>();
+
 		let mut c = cache.0.lock().unwrap();
 
 		let mut should_show = true;
@@ -151,6 +160,7 @@ impl<R:Runtime> WindowExt for Window<R> {
 
 			if flags.contains(StateFlags::POSITION) {
 				let position = (state.x, state.y).into();
+
 				let size = (state.width, state.height).into();
 				// restore position to saved value if saved monitor exists
 				// otherwise, let the OS decide where to place the window
@@ -178,14 +188,19 @@ impl<R:Runtime> WindowExt for Window<R> {
 
 			if flags.contains(StateFlags::SIZE) {
 				let scale_factor = self.current_monitor()?.map(|m| m.scale_factor()).unwrap_or(1.);
+
 				let size = self.inner_size()?.to_logical(scale_factor);
+
 				metadata.width = size.width;
+
 				metadata.height = size.height;
 			}
 
 			if flags.contains(StateFlags::POSITION) {
 				let pos = self.outer_position()?;
+
 				metadata.x = pos.x;
+
 				metadata.y = pos.y;
 			}
 
@@ -210,6 +225,7 @@ impl<R:Runtime> WindowExt for Window<R> {
 
 		if flags.contains(StateFlags::VISIBLE) && should_show {
 			self.show()?;
+
 			self.set_focus()?;
 		}
 
@@ -246,18 +262,22 @@ impl<R:Runtime> WindowExtInternal for Window<R> {
 
 		if flags.contains(StateFlags::SIZE) {
 			let scale_factor = self.current_monitor()?.map(|m| m.scale_factor()).unwrap_or(1.);
+
 			let size = self.inner_size()?.to_logical(scale_factor);
 
 			// It doesn't make sense to save a window with 0 height or width
 			if size.width > 0. && size.height > 0. && !is_maximized {
 				state.width = size.width;
+
 				state.height = size.height;
 			}
 		}
 
 		if flags.contains(StateFlags::POSITION) && !is_maximized {
 			let position = self.outer_position()?;
+
 			state.x = position.x;
+
 			state.y = position.y;
 		}
 
@@ -278,6 +298,7 @@ impl Builder {
 	/// Sets the state flags to control what state gets restored and saved.
 	pub fn with_state_flags(mut self, flags:StateFlags) -> Self {
 		self.state_flags = flags;
+
 		self
 	}
 
@@ -285,6 +306,7 @@ impl Builder {
 	/// plugin for example splash screen windows.
 	pub fn with_denylist(mut self, denylist:&[&str]) -> Self {
 		self.denylist = denylist.iter().map(|l| l.to_string()).collect();
+
 		self
 	}
 
@@ -292,11 +314,13 @@ impl Builder {
 	/// restore.
 	pub fn skip_initial_state(mut self, label:&str) -> Self {
 		self.skip_initial_state.insert(label.into());
+
 		self
 	}
 
 	pub fn build<R:Runtime>(self) -> TauriPlugin<R> {
 		let flags = self.state_flags;
+
 		PluginBuilder::new("window-state")
 			.invoke_handler(tauri::generate_handler![cmd::save_window_state, cmd::restore_state])
 			.setup(|app| {
@@ -304,6 +328,7 @@ impl Builder {
 					app.path_resolver().app_config_dir()
 				{
 					let state_path = app_dir.join(STATE_FILENAME);
+
 					if state_path.exists() {
 						Arc::new(Mutex::new(
 							tauri::api::file::read_binary(state_path)
@@ -317,7 +342,9 @@ impl Builder {
 				} else {
 					Default::default()
 				};
+
 				app.manage(WindowStateCache(cache));
+
 				Ok(())
 			})
 			.on_webview_ready(move |window| {
@@ -330,9 +357,13 @@ impl Builder {
 				}
 
 				let cache = window.state::<WindowStateCache>();
+
 				let cache = cache.0.clone();
+
 				let label = window.label().to_string();
+
 				let window_clone = window.clone();
+
 				let flags = self.state_flags;
 
 				// insert a default state if this window should be tracked and
@@ -345,6 +376,7 @@ impl Builder {
 					match e {
 						WindowEvent::CloseRequested { .. } => {
 							let mut c = cache.lock().unwrap();
+
 							if let Some(state) = c.get_mut(&label) {
 								let _ = window_clone.update_state(state, flags);
 							}
@@ -352,11 +384,14 @@ impl Builder {
 
 						WindowEvent::Moved(position) if flags.contains(StateFlags::POSITION) => {
 							let mut c = cache.lock().unwrap();
+
 							if let Some(state) = c.get_mut(&label) {
 								state.prev_x = state.x;
+
 								state.prev_y = state.y;
 
 								state.x = position.x;
+
 								state.y = position.y;
 							}
 						},
@@ -382,11 +417,15 @@ impl MonitorExt for Monitor {
 		let size = size.to_physical::<u32>(self.scale_factor());
 
 		let PhysicalPosition { x, y } = *self.position();
+
 		let PhysicalSize { width, height } = *self.size();
 
 		let left = x;
+
 		let right = x + width as i32;
+
 		let top = y;
+
 		let bottom = y + height as i32;
 
 		[
