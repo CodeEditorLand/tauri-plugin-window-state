@@ -4,7 +4,7 @@
 
 use std::{
 	collections::{HashMap, HashSet},
-	fs::{create_dir_all, File},
+	fs::{File, create_dir_all},
 	io::Write,
 	sync::{Arc, Mutex},
 };
@@ -12,7 +12,6 @@ use std::{
 use bitflags::bitflags;
 use serde::{Deserialize, Serialize};
 use tauri::{
-	plugin::{Builder as PluginBuilder, TauriPlugin},
 	LogicalSize,
 	Manager,
 	Monitor,
@@ -22,6 +21,7 @@ use tauri::{
 	Runtime,
 	Window,
 	WindowEvent,
+	plugin::{Builder as PluginBuilder, TauriPlugin},
 };
 
 mod cmd;

@@ -1,4 +1,4 @@
-use tauri::{command, AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Manager, Runtime, command};
 
 use crate::{AppHandleExt, StateFlags, WindowExt};
 
